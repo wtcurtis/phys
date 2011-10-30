@@ -153,6 +153,21 @@ phys.Polygon.calcMoment = function(p, mass) {
     return (mass / 6)*(ISum / areaSum);
 }
 
+phys.Polygon.makeRegularPolygon = function(nSides, sLen, xi, yi) {
+    var i, angle, dir, pos, oldPos, vertices, rot;
+    pos = new phys.Vector2(xi, yi);
+    dir = new phys.Vector2(sLen, 0);
+    angle = (Math.PI) - ((nSides-2)*Math.PI / nSides);
+    rot = phys.Matrix2.makeRotation(angle);
+    vertices = [new phys.Vector2(xi, yi)]
+    for(i = 0; i < nSides-1; i++) {
+        pos = phys.Vector2.add(pos, dir);
+        vertices.push(pos)
+        dir = dir.rotate(rot);
+    }
+    return new phys.Polygon(vertices);
+}
+
 phys.Matrix2 = function(x1, y1, x2, y2) {
     this.x1 = x1;
     this.x2 = x2;
@@ -199,42 +214,6 @@ phys.World.prototype = {
     }
 }
 
-function makeRect(ll, ur) {
-    a = new phys.Vector2(ll.x, ll.y);
-    b = new phys.Vector2(ll.x, ur.y);
-    c = new phys.Vector2(ur.x, ur.y);
-    d = new phys.Vector2(ur.x, ll.y);
-    
-    return new phys.Polygon([a, b, c, d]);
-}
-
-function makeRectEasy(llx, lly, urx, ury) {
-    return makeRect(new phys.Vector2(llx, lly), new phys.Vector2(urx, ury));
-}
-
-function makeTri(ax, ay, bx, by, cx, cy) {
-    var points = []
-    points.push(new phys.Vector2(ax, ay));
-    points.push(new phys.Vector2(bx, by));
-    points.push(new phys.Vector2(cx, cy));
-    return new phys.Polygon(points);
-}
-
-function makeRegularPolygon(nSides, sLen, xi, yi) {
-    var i, angle, dir, pos, oldPos, vertices, rot;
-    pos = new phys.Vector2(xi, yi);
-    dir = new phys.Vector2(sLen, 0);
-    angle = (Math.PI) - ((nSides-2)*Math.PI / nSides);
-    rot = phys.Matrix2.makeRotation(angle);
-    vertices = [new phys.Vector2(xi, yi)]
-    for(i = 0; i < nSides-1; i++) {
-        pos = phys.Vector2.add(pos, dir);
-        vertices.push(pos)
-        dir = dir.rotate(rot);
-    }
-    return new phys.Polygon(vertices);
-}
-
 function sandbox(processing) {
     var box, left, right, up, down, space
     //box = makeTri(50, 150, 150, 150, 100, 50);
@@ -242,18 +221,7 @@ function sandbox(processing) {
     var rot = phys.Matrix2.makeRotation(Math.PI / 15);
     var worldRect = {width: 600, height: 600};
     var world = new phys.World([box], makeRectEasy(0, 0, 300, 300), {g: new phys.Vector2(0, .3)});
-    processing.draw = function() {
-        function drawPoly(poly) {
-            var i, vs, v1, v2;
-            processing.strokeWeight(2);
-            for(i = 0; i < poly.vertices.length; i++) {
-                v1 = poly.vertices[i];
-                v2 = poly.vertices[(i+1) % poly.vertices.length];
-                processing.line(v1.x, v1.y, v2.x, v2.y);
-            }
-            processing.point(box.centroid.x, box.centroid.y)
-        }
-        
+    processing.draw = function() {        
         handleInput();
         clear();
         drawPoly(box);
@@ -264,6 +232,17 @@ function sandbox(processing) {
         processing.background(230);
         processing.fill(230);
     }
+    
+    function drawPoly(poly) {
+            var i, vs, v1, v2;
+            processing.strokeWeight(2);
+            for(i = 0; i < poly.vertices.length; i++) {
+                v1 = poly.vertices[i];
+                v2 = poly.vertices[(i+1) % poly.vertices.length];
+                processing.line(v1.x, v1.y, v2.x, v2.y);
+            }
+            processing.point(box.centroid.x, box.centroid.y)
+        }
     
     function clear() {
         var w = processing.width;
