@@ -17,6 +17,7 @@ phys.Vector2.prototype = {
     },
     rotate:function(rot, p) {
         var offset;
+        p = p || new phys.Vector2(0, 0);
         offset = new phys.Vector2(this.x - p.x, this.y - p.y);
         offset = rot.multiply(offset);
         offset.x += p.x;offset.y += p.y;
@@ -35,7 +36,7 @@ phys.Vector2.prototype = {
 };
 
 phys.Vector2.add = function(v1, v2) {
-    return new phys.Vector2(v1.x+v2.x, v2.y+v2.y);
+    return new phys.Vector2(v1.x+v2.x, v1.y+v2.y);
 }
 
 phys.Polygon = function(points, density) {
@@ -123,14 +124,16 @@ phys.Polygon.calcCentroid = function(p) {
 
 phys.Polygon.calcMomentAlt = function(poly, point, mass) {
     var i, next, ISum, va, vb, turned, vs;
+    va = new phys.Vector2(0, 0);
+    vb = new phys.Vector2(0, 0);
+    turned = new phys.Vector2(0, 0);
     ISum = 0;
     for(i = 0; i < poly.vertices.length; i++) {
-        
         vs = poly.vertices;
         next = (i+1 == poly.vertices.length) ? 0 : i+1;
-        va = new phys.Vector2(point.x - vs[i].x, point.y - vs[i].y);
-        vb = new phys.Vector2(point.x - vs[next].x, point.y - vs[next].y);
-        turned = new phys.Vector2(-va.y, va.x);
+        va.x = point.x - vs[i].x; va.y = point.y - vs[i].y;
+        vb.x = point.x - vs[next].x; vb.y = point.y - vs[next].y;
+        turned.x = -va.y; turned.y = va.x;
         ISum += turned.dot(vb)*(va.dot(va)+va.dot(vb)+vb.dot(vb));
     }
     return mass / 6;
@@ -217,12 +220,28 @@ function makeTri(ax, ay, bx, by, cx, cy) {
     return new phys.Polygon(points);
 }
 
+function makeRegularPolygon(nSides, sLen, xi, yi) {
+    var i, angle, dir, pos, oldPos, vertices, rot;
+    pos = new phys.Vector2(xi, yi);
+    dir = new phys.Vector2(sLen, 0);
+    angle = (Math.PI) - ((nSides-2)*Math.PI / nSides);
+    rot = phys.Matrix2.makeRotation(angle);
+    vertices = [new phys.Vector2(xi, yi)]
+    for(i = 0; i < nSides-1; i++) {
+        pos = phys.Vector2.add(pos, dir);
+        vertices.push(pos)
+        dir = dir.rotate(rot);
+    }
+    return new phys.Polygon(vertices);
+}
+
 function sandbox(processing) {
     var box, left, right, up, down, space
-    var box = makeTri(50, 150, 150, 150, 100, 50);
+    //box = makeTri(50, 150, 150, 150, 100, 50);
+    box = makeRegularPolygon(5, 25, 100, 100);
     var rot = phys.Matrix2.makeRotation(Math.PI / 15);
-    var worldRect = {width: 300, height: 300};
-    var world = new phys.World([box], makeRectEasy(0, 0, 300, 300), {g: new phys.Vector2(0, .25)});
+    var worldRect = {width: 600, height: 600};
+    var world = new phys.World([box], makeRectEasy(0, 0, 300, 300), {g: new phys.Vector2(0, .3)});
     processing.draw = function() {
         function drawPoly(poly) {
             var i, vs, v1, v2;
@@ -234,6 +253,7 @@ function sandbox(processing) {
             }
             processing.point(box.centroid.x, box.centroid.y)
         }
+        
         handleInput();
         clear();
         drawPoly(box);
@@ -255,24 +275,25 @@ function sandbox(processing) {
         var moved = false;
         world.objs[0].acc = new phys.Vector2(0, 0);
         if(left) {
-            box.translateSelf(new phys.Vector2(-5, 0));
+            world.objs[0].acc.x = -1;
             moved = true;
         }
         if(right) {
-            box.translateSelf(new phys.Vector2(5, 0));
+            world.objs[0].acc.x = 1;
             moved = true;
         }
         if(up) {
-            world.objs[0].acc = new phys.Vector2(0, -1);
+            world.objs[0].acc.y = -1;
             //box.translateSelf(new phys.Vector2(0, -5));
             moved = true;
         }
         if(down) {
-            world.objs[0].acc = new phys.Vector2(0, 1);
+            world.objs[0].acc.y = 1;
             //box.translateSelf(new phys.Vector2(0, 5));
             moved = true;
         }
         if(space) {
+            box.rotateSelf(rot);
             world.stepWorld();
             moved = true;
         }
