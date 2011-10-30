@@ -131,9 +131,9 @@ phys.Polygon.calcMomentAlt = function(poly, point, mass) {
     for(i = 0; i < poly.vertices.length; i++) {
         vs = poly.vertices;
         next = (i+1 == poly.vertices.length) ? 0 : i+1;
-        va.x = point.x - vs[i].x; va.y = point.y - vs[i].y;
-        vb.x = point.x - vs[next].x; vb.y = point.y - vs[next].y;
-        turned.x = -va.y; turned.y = va.x;
+        va.x = point.x - vs[i].x;va.y = point.y - vs[i].y;
+        vb.x = point.x - vs[next].x;vb.y = point.y - vs[next].y;
+        turned.x = -va.y;turned.y = va.x;
         ISum += turned.dot(vb)*(va.dot(va)+va.dot(vb)+vb.dot(vb));
     }
     return mass / 6;
@@ -214,13 +214,26 @@ phys.World.prototype = {
     }
 }
 
+function makeRect(ll, ur) {
+    a = new phys.Vector2(ll.x, ll.y);
+    b = new phys.Vector2(ll.x, ur.y);
+    c = new phys.Vector2(ur.x, ur.y);
+    d = new phys.Vector2(ur.x, ll.y);
+    
+    return new phys.Polygon([a, b, c, d]);
+}
+
+function makeRectEasy(llx, lly, urx, ury) {
+    return makeRect(new phys.Vector2(llx, lly), new phys.Vector2(urx, ury));
+}
+
 function sandbox(processing) {
     var box, left, right, up, down, space
     //box = makeTri(50, 150, 150, 150, 100, 50);
-    box = makeRegularPolygon(5, 25, 100, 100);
+    box = phys.Polygon.makeRegularPolygon(8, 2, 100, 100);
     var rot = phys.Matrix2.makeRotation(Math.PI / 15);
     var worldRect = {width: 600, height: 600};
-    var world = new phys.World([box], makeRectEasy(0, 0, 300, 300), {g: new phys.Vector2(0, .3)});
+    var world = new phys.World([box], (0, 0, 300, 300), {g: new phys.Vector2(0, .3)});
     processing.draw = function() {        
         handleInput();
         clear();
