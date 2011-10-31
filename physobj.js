@@ -230,7 +230,7 @@ function makeRectEasy(llx, lly, urx, ury) {
 function sandbox(processing) {
     var box, left, right, up, down, space
     //box = makeTri(50, 150, 150, 150, 100, 50);
-    box = phys.Polygon.makeRegularPolygon(8, 2, 100, 100);
+    box = phys.Polygon.makeRegularPolygon(8, 50, 100, 100);
     var rot = phys.Matrix2.makeRotation(Math.PI / 15);
     var worldRect = {width: 600, height: 600};
     var world = new phys.World([box], (0, 0, 300, 300), {g: new phys.Vector2(0, .3)});
