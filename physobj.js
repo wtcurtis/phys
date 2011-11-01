@@ -30,13 +30,28 @@ phys.Vector2.prototype = {
     add:function(v) {
         return new phys.Vector2(v.x+this.x, v.y+this.y);
     },
+    multiply:function(scalar) {
+        return phys.Vector2.multiply(this, scalar);
+    },
     clone:function() {
         return new phys.Vector2(this.x, this.y);
+    },
+    divide:function(scalar) {
+        return new phys.Vector2(this.x / scalar, this.y / scalar);
+    },
+    normalize:function() {
+        var mag;
+        mag = Math.sqrt(this.x*this.x+this.y*this.y);
+        return this.divide(mag);
     }
 };
 
 phys.Vector2.add = function(v1, v2) {
     return new phys.Vector2(v1.x+v2.x, v1.y+v2.y);
+}
+
+phys.Vector2.multiply = function(v, scalar) {
+    return new phys.Vector2(v.x*scalar, v.y*scalar);
 }
 
 phys.Polygon = function(points, density) {
@@ -195,6 +210,7 @@ phys.World = function(geometry, boundingBox, spec) {
             acc: new phys.Vector2(0, 0),
             vel: new phys.Vector2(0, 0), 
             tor: new phys.Vector2(0, 0), 
+            up: phys.Vector2.add(geometry[i].vertices[0], geometry[i].centroid.multiply(-1)),
             geo: geometry[i]
         });
     }
@@ -210,6 +226,7 @@ phys.World.prototype = {
             obj = this.objs[i];
             obj.vel.addSelf(obj.acc.add(this.g));
             obj.geo.translateSelf(obj.vel);
+            obj.up.addSelf(obj.vel);
         }
     }
 }
@@ -230,12 +247,16 @@ function makeRectEasy(llx, lly, urx, ury) {
 function sandbox(processing) {
     var box, left, right, up, down, space
     //box = makeTri(50, 150, 150, 150, 100, 50);
-    box = phys.Polygon.makeRegularPolygon(8, 50, 100, 100);
-    var rot = phys.Matrix2.makeRotation(Math.PI / 15);
+    box = phys.Polygon.makeRegularPolygon(3, 60, 100, 100);
+    var rotr = phys.Matrix2.makeRotation(Math.PI / 20);
+    var rotl = phys.Matrix2.makeRotation(Math.PI*2 - (Math.PI / 20));
     var worldRect = {width: 600, height: 600};
-    var world = new phys.World([box], (0, 0, 300, 300), {g: new phys.Vector2(0, .3)});
+    var world = new phys.World([box], (0, 0, 300, 300), {g: new phys.Vector2(0, .1)});
+    
     processing.draw = function() {        
+        box.up = world.objs[0].up;
         handleInput();
+        world.stepWorld();
         clear();
         drawPoly(box);
         processing.point(5, 5);
@@ -254,8 +275,12 @@ function sandbox(processing) {
                 v2 = poly.vertices[(i+1) % poly.vertices.length];
                 processing.line(v1.x, v1.y, v2.x, v2.y);
             }
-            processing.point(box.centroid.x, box.centroid.y)
+            processing.point(poly.centroid.x, poly.centroid.y)
+            drawVector(poly.centroid, poly.up);
         }
+    function drawVector(vec1, vec2) {
+        processing.line(vec1.x, vec1.y, vec2.x, vec2.y);
+    }
     
     function clear() {
         var w = processing.width;
@@ -267,26 +292,30 @@ function sandbox(processing) {
         var moved = false;
         world.objs[0].acc = new phys.Vector2(0, 0);
         if(left) {
-            world.objs[0].acc.x = -1;
+            box.rotateSelf(rotr);
+            world.objs[0].up = world.objs[0].up.rotate(rotr, box.centroid);
+            //world.objs[0].acc.x = -1;
             moved = true;
         }
         if(right) {
-            world.objs[0].acc.x = 1;
+            box.rotateSelf(rotl);
+            world.objs[0].up = world.objs[0].up.rotate(rotl, box.centroid);
+            //world.objs[0].acc.x = 1;
             moved = true;
         }
         if(up) {
-            world.objs[0].acc.y = -1;
+            world.objs[0].acc = world.objs[0].up.add(box.centroid.multiply(-1)).normalize().multiply(-1);
             //box.translateSelf(new phys.Vector2(0, -5));
             moved = true;
         }
         if(down) {
-            world.objs[0].acc.y = 1;
+            //world.objs[0].acc = box.up;
             //box.translateSelf(new phys.Vector2(0, 5));
             moved = true;
         }
         if(space) {
-            box.rotateSelf(rot);
-            world.stepWorld();
+            //box.rotateSelf(rot);
+            //world.stepWorld();
             moved = true;
         }
         return moved;
